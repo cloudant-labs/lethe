@@ -1,0 +1,12 @@
+{application, lethe, [
+        {description, "Lethe, the storage engine of forgetfulness."},
+    {vsn, git},
+    {registered, [lethe_sup, temper_server]},
+    {mod, {lethe_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        couch
+    ]}
+]}.
+
