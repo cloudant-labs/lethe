@@ -69,18 +69,10 @@
 
 
 -include_lib("couch/include/couch_db.hrl").
+-include_lib("lethe/include/lethe.hrl").
 
 
 -include_lib("eunit/include/eunit.hrl").
-
--record(wiacc, {
-    new_ids = [],
-    rem_ids = [],
-    new_seqs = [],
-    rem_seqs = [],
-    update_seq
-}).
-
 
 -record(st, {
     header,
@@ -90,28 +82,6 @@
     local_tab,
     lethe_db,
     monitor
-}).
-
-%% TODO: FIXME: make this an opaque API or move to shared .hrl
--record(lethe_db, {
-    name,
-    body_tab,
-    fdi_tab,
-    local_tab,
-    seq_tab,
-    compacted_seq = 0,
-    del_doc_count = 0,
-    disk_version = 1,
-    doc_count = 0,
-    epochs = [{node(), 0}],
-    last_purged = [],
-    purge_seq = 0,
-    revs_limit = 1000,
-    security = dso,
-    size_info = [],
-    update_seq = 0,
-    uuid = couch_uuids:random(),
-    compression = couch_compress:get_compression_method()
 }).
 
 
@@ -127,7 +97,7 @@ init(Name, Options) ->
         fdi_tab = Db#lethe_db.fdi_tab,
         body_tab = Db#lethe_db.body_tab,
         local_tab = Db#lethe_db.local_tab,
-        monitor = lethe_server:incref(Db)
+        monitor = lethe_db:incref(Db)
     }}.
 
 
@@ -142,28 +112,28 @@ delete(_RootDir, Name, _Async) ->
     end.
 
 
-get_compacted_seq(#st{lethe_db=Db}) -> lethe_server:get_compacted_seq(Db).
-get_del_doc_count(#st{lethe_db=Db}) -> lethe_server:get_del_doc_count(Db).
-get_disk_version(#st{lethe_db=Db}) -> lethe_server:get_disk_version(Db).
-get_doc_count(#st{lethe_db=Db}) -> lethe_server:get_doc_count(Db).
-get_epochs(#st{lethe_db=Db}) -> lethe_server:get_epochs(Db).
-get_last_purged(#st{lethe_db=Db}) -> lethe_server:get_last_purged(Db).
-get_purge_seq(#st{lethe_db=Db}) -> lethe_server:get_purge_seq(Db).
-get_revs_limit(#st{lethe_db=Db}) -> lethe_server:get_revs_limit(Db).
-get_security(#st{lethe_db=Db}) -> lethe_server:get_security(Db).
-get_size_info(#st{lethe_db=Db}) -> lethe_server:get_size_info(Db).
-get_update_seq(#st{lethe_db=Db}) -> lethe_server:get_update_seq(Db).
-get_uuid(#st{lethe_db=Db}) -> lethe_server:get_uuid(Db).
+get_compacted_seq(#st{lethe_db=Db}) -> lethe_db:get_compacted_seq(Db).
+get_del_doc_count(#st{lethe_db=Db}) -> lethe_db:get_del_doc_count(Db).
+get_disk_version(#st{lethe_db=Db}) -> lethe_db:get_disk_version(Db).
+get_doc_count(#st{lethe_db=Db}) -> lethe_db:get_doc_count(Db).
+get_epochs(#st{lethe_db=Db}) -> lethe_db:get_epochs(Db).
+get_last_purged(#st{lethe_db=Db}) -> lethe_db:get_last_purged(Db).
+get_purge_seq(#st{lethe_db=Db}) -> lethe_db:get_purge_seq(Db).
+get_revs_limit(#st{lethe_db=Db}) -> lethe_db:get_revs_limit(Db).
+get_security(#st{lethe_db=Db}) -> lethe_db:get_security(Db).
+get_size_info(#st{lethe_db=Db}) -> lethe_db:get_size_info(Db).
+get_update_seq(#st{lethe_db=Db}) -> lethe_db:get_update_seq(Db).
+get_uuid(#st{lethe_db=Db}) -> lethe_db:get_uuid(Db).
 
 
 set_revs_limit(#st{lethe_db=Db} = St, Value) ->
-    {ok, Db1} = lethe_server:set_revs_limit(Db, Value),
-    {ok, St#st{lethe_db=Db1}}.
+    ok = lethe_db:set_revs_limit(Db, Value),
+    {ok, St}.
 
 
 set_security(#st{lethe_db=Db} = St, Value) ->
-    {ok, Db1} = lethe_server:set_security(Db, Value),
-    {ok, St#st{lethe_db=Db1}}.
+    ok = lethe_db:set_security(Db, Value),
+    {ok, St}.
 
 
 open_docs(#st{fdi_tab=Tab}, DocIds) ->
@@ -185,18 +155,18 @@ open_docs_int(Tab, DocIds) ->
     end, DocIds).
 
 
-open_local_docs(#st{local_tab=Tab}, DocIds) ->
+open_local_docs(#st{local_tab = Tab}, DocIds) ->
     open_docs_int(Tab, DocIds).
 
 
-write_doc_body(#st{body_tab=Tab}, #doc{} = Doc) ->
-    #doc{
-        id=Id,
-        revs={Start, [FirstRevId|_]}
-    } = Doc,
-    Rev = ?l2b([integer_to_list(Start),"-",?l2b(couch_util:to_hex(FirstRevId))]),
-    true = ets:insert_new(Tab, [{{Id, Rev}, Doc#doc.body}]),
-    {ok, Doc#doc{body={Id, Rev}}, size(Doc#doc.body)}.
+write_doc_body(#st{lethe_db = Db} = St, #doc{} = Doc) ->
+    lethe_db:write_doc_body(Db, Doc).
+
+
+write_doc_infos(#st{} = St, Pairs, LocalDocs, PurgeInfo) ->
+    #st{lethe_db = Db} = St,
+    ok = lethe_db:write_doc_infos(Db, Pairs, LocalDocs, PurgeInfo),
+    {ok, St}.
 
 
 serialize_doc(#st{}, #doc{} = Doc) ->
@@ -210,7 +180,7 @@ commit_data(St) ->
 read_doc_body(#st{} = St, #doc{id=Id} = Doc) ->
     case ets:lookup(St#st.body_tab, Doc#doc.body) of
         [] -> not_found;
-        [{{Id, _Rev}, BodyTerm}] ->
+        [{{_Id, _Rev}, BodyTerm}] ->
             {Body, Atts} = binary_to_term(BodyTerm),
             Doc#doc{
                 body = Body,
@@ -229,8 +199,6 @@ fold_docs(#st{fdi_tab=Tab}, UserFun, UserAcc, Options) ->
 
 
 fold_local_docs(#st{local_tab=Tab}, UserFun, UserAcc, Options) ->
-    %%?debugFmt("LOCAL TAB INFO: ~p~n", [ets:info(Tab)]),
-    %%?debugFmt("LOCAL OPTS: ~p~n", [Options]),
     fold_docs_int(Tab, UserFun, UserAcc, Options).
 
 
@@ -340,10 +308,7 @@ fold_docs_int(Tab, UserFun0, UserAcc, Options) ->
     wrap_fold_result(OutAcc, Options).
 
 
-%%count_changes_since(#st{}=St, SinceSeq) ->
 count_changes_since(#st{lethe_db=Db}, SinceSeq) ->
-    %%UpdateSeq = get_update_seq(St),
-    %%UpdateSeq - SinceSeq.
     count_changes_since(Db#lethe_db.seq_tab, SinceSeq, 0).
 
 
@@ -387,13 +352,13 @@ fold_changes_int(Db, Key, Fun, {ok, Acc0}, Options) ->
 
 start_compaction(#st{lethe_db = Db} = St, _DbName, Options, Parent) ->
     UpdateSeq = get_update_seq(St),
-    {ok, Pid} = lethe_server:start_compaction(Db, Options, Parent),
-    Db1 = Db#lethe_db{update_seq=UpdateSeq},
+    {ok, Pid} = lethe_db:start_compaction(Db, Options, Parent),
+    Db1 = Db#lethe_db{curr_seq=UpdateSeq},
     {ok, St#st{lethe_db=Db1}, Pid}.
 
 
 finish_compaction(#st{lethe_db=Db} = St, DbName, Options, _Info) ->
-    UpdateSeqStart = Db#lethe_db.update_seq,
+    UpdateSeqStart = Db#lethe_db.curr_seq,
     UpdateSeqCurr = get_update_seq(St),
     case UpdateSeqStart == UpdateSeqCurr of
         true ->
@@ -404,16 +369,16 @@ finish_compaction(#st{lethe_db=Db} = St, DbName, Options, _Info) ->
 
 
 monitored_by(#st{lethe_db=Db}=_St) ->
-    lethe_server:monitored_by(Db).
+    lethe_db:monitored_by(Db).
 
 
 incref(#st{lethe_db=Db}=St) ->
-    Ref = lethe_server:incref(Db),
+    Ref = lethe_db:incref(Db),
     {ok, St#st{monitor=Ref}}.
 
 
 decref(#st{monitor=Monitor}) ->
-    true = lethe_server:decref(Monitor),
+    true = lethe_db:decref(Monitor),
     ok.
 
 
@@ -421,142 +386,6 @@ decref(#st{monitor=Monitor}) ->
 delete_compaction_files(_RootDir, _DirPath, _DelOpts) -> throw(not_implemented).
 handle_call(_Msg, _St) -> throw(not_implemented).
 handle_info(_E, _St) -> throw(not_implemented).
-
-
-write_doc_infos(#st{lethe_db=Db0} = St, Pairs, LocalDocs, PurgeInfo) ->
-    UpdateSeq = get_update_seq(St),
-    %%io:format("WRITE_DOCS_INFOS -- PAIRS: ~p~n", [Pairs]),
-    %%io:format("WRITE_DOCS_INFOS -- LOCAL DOCS: ~p~n", [LocalDocs]),
-    #wiacc{
-        %% new_ids = NewIds,
-        rem_ids = RemIds,
-        new_seqs = NewSeqs,
-        rem_seqs = RemSeqs,
-        update_seq = NewSeq0
-    } = get_write_info(St, Pairs),
-    %%io:format("WRITE_DOC_INFOS -- NEW IDS: ~p~n", [NewIds]),
-    %%io:format("WRITE LOCAL DOCS: ~p~n", [LocalDocs]),
-    %%io:format("WRITE_DOC_INFOS -- REM IDS: ~p~n", [RemIds]),
-    %io:format("WRITE_DOC_INFOS -- NEW SEQS: ~p~n", [NewSeqs]),
-    %%io:format("WRITE_DOC_INFOS -- REM SEQS: ~p~n", [RemSeqs]),
-    %%io:format("WRITE_DOC_INFOS -- OLD/NEW UPDATE SEQ: ~p||~p~n", [UpdateSeq, NewSeq]),
-
-    %% IdTree = foo,
-    %% SeqTree = bar,
-    %% LocalTree = baz,
-    %% {ok, IdTree2} = couch_ngen_btree:add_remove(IdTree, NewIds, RemIds),
-    %% {ok, SeqTree2} = couch_ngen_btree:add_remove(SeqTree, NewSeqs, RemSeqs),
-
-    %% {AddLDocs, RemLDocIds} = lists:foldl(fun(Doc, {AddAcc, RemAcc}) ->
-    %%     case Doc#doc.deleted of
-    %%         true ->
-    %%             {AddAcc, [Doc#doc.id | RemAcc]};
-    %%         false ->
-    %%             {[Doc | AddAcc], RemAcc}
-    %%     end
-    %% end, {[], []}, LocalDocs),
-    %% {ok, LocalTree2} = couch_ngen_btree:add_remove(
-    %%         LocalTree, AddLDocs, RemLDocIds),
-
-    %% NewHeader = case PurgeInfo of
-    %%     [] ->
-    %%         couch_ngen_header:set(St#st.header, [
-    %%             {update_seq, NewSeq}
-    %%         ]);
-    %%     _ ->
-    %%         {ok, Ptr} = couch_ngen_file:append_term(baaaz, PurgeInfo),
-    %%         OldPurgeSeq = couch_ngen_header:get(zaaab, purge_seq),
-    %%         couch_ngen_header:set(St#st.header, [
-    %%             {update_seq, NewSeq + 1},
-    %%             {purge_seq, OldPurgeSeq + 1},
-    %%             {purged_docs, Ptr}
-    %%         ])
-    %% end,
-
-    {NewSeq, Db} = case PurgeInfo of
-        [] ->
-            {NewSeq0, Db0};
-        _ ->
-            {ok, Db1} = lethe_server:purge_docs(Db0, PurgeInfo),
-            {NewSeq0 + 1, Db1}
-    end,
-
-    %%io:format("UPDATING DOC COUNT AND UPDATE SEQ~n", []),
-    SeqDelta = NewSeq - UpdateSeq,
-    _Old = lethe_server:inc_update_seq(Db, SeqDelta),
-    [true = ets:delete(Db#lethe_db.seq_tab, K) || K <- RemSeqs],
-    true = ets:insert_new(Db#lethe_db.seq_tab, NewSeqs),
-
-    %% FIXME
-    [true = ets:delete(Db#lethe_db.fdi_tab, K) || K <- RemIds],
-
-    ok = write_local_doc_infos(Db, LocalDocs),
-
-    {ok, St}.
-
-
-get_write_info(St, Pairs) ->
-    Acc = #wiacc{update_seq = get_update_seq(St)},
-    get_write_info(St, Pairs, Acc).
-
-
-get_write_info(_St, [], Acc) ->
-    Acc;
-
-get_write_info(St, [{OldFDI, NewFDI} | Rest], Acc) ->
-    NewAcc = case {OldFDI, NewFDI} of
-        {not_found, #full_doc_info{}} ->
-            #full_doc_info{
-                id = Id,
-                update_seq = Seq
-            } = NewFDI,
-            {ok, Ptr} = write_doc_info(St, NewFDI),
-            Acc#wiacc{
-                new_ids = [{Id, Ptr} | Acc#wiacc.new_ids],
-                new_seqs = [{Seq, Ptr} | Acc#wiacc.new_seqs],
-                update_seq = erlang:max(Seq, Acc#wiacc.update_seq)
-            };
-        {#full_doc_info{id = Id}, #full_doc_info{id = Id}} ->
-            #full_doc_info{
-                update_seq = OldSeq
-            } = OldFDI,
-            #full_doc_info{
-                update_seq = NewSeq
-            } = NewFDI,
-            {ok, Ptr} = write_doc_info(St, NewFDI),
-            Acc#wiacc{
-                new_ids = [{Id, Ptr} | Acc#wiacc.new_ids],
-                new_seqs = [{NewSeq, Ptr} | Acc#wiacc.new_seqs],
-                rem_seqs = [OldSeq | Acc#wiacc.rem_seqs],
-                update_seq = erlang:max(NewSeq, Acc#wiacc.update_seq)
-            };
-        {#full_doc_info{}, not_found} ->
-            #full_doc_info{
-                id = Id,
-                update_seq = Seq
-            } = OldFDI,
-            Acc#wiacc{
-                rem_ids = [Id | Acc#wiacc.rem_ids],
-                rem_seqs = [Seq | Acc#wiacc.rem_seqs]
-            }
-    end,
-    get_write_info(St, Rest, NewAcc).
-
-
-write_local_doc_infos(#lethe_db{}, []) ->
-    ok;
-write_local_doc_infos(#lethe_db{local_tab=Tab}, LocalDocs) ->
-    true = ets:insert(Tab, LocalDocs),
-    ok.
-
-
-write_doc_info(St, FDI) ->
-    #full_doc_info{
-        id = Id,
-        update_seq = Seq
-    } = FDI,
-    true = ets:insert(St#st.fdi_tab, [FDI]),
-    {ok, {Id, Seq}}.
 
 
 maybe_wrap_user_fun(UserFun, Options) ->

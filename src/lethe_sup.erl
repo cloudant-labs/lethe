@@ -13,13 +13,21 @@ start_link() ->
 
 
 init([]) ->
-    Worker = {
-        lethe_server,
-        {lethe_server, start_link, []},
-        permanent,
-        100,
-        worker,
-        [lethe_server]
-    },
-    {ok, {{one_for_one, 5, 10}, [Worker]}}.
+    Children = [
+        {lethe_db_sup,
+            {lethe_db_sup, start_link, []},
+            permanent,
+            100,
+            supervisor,
+            [lethe_db_sup]
+        },
+        {lethe_server,
+            {lethe_server, start_link, []},
+            permanent,
+            100,
+            worker,
+            [lethe_server]
+        }
+    ],
+    {ok, {{one_for_one, 5, 10}, Children}}.
 
