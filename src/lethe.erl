@@ -112,31 +112,31 @@ delete(_RootDir, Name, _Async) ->
     end.
 
 
-get_compacted_seq(#st{lethe_db=Db}) -> lethe_db:get_compacted_seq(Db).
-get_del_doc_count(#st{lethe_db=Db}) -> lethe_db:get_del_doc_count(Db).
-get_disk_version(#st{lethe_db=Db}) -> lethe_db:get_disk_version(Db).
-get_doc_count(#st{lethe_db=Db}) -> lethe_db:get_doc_count(Db).
-get_epochs(#st{lethe_db=Db}) -> lethe_db:get_epochs(Db).
-get_last_purged(#st{lethe_db=Db}) -> lethe_db:get_last_purged(Db).
-get_purge_seq(#st{lethe_db=Db}) -> lethe_db:get_purge_seq(Db).
-get_revs_limit(#st{lethe_db=Db}) -> lethe_db:get_revs_limit(Db).
-get_security(#st{lethe_db=Db}) -> lethe_db:get_security(Db).
-get_size_info(#st{lethe_db=Db}) -> lethe_db:get_size_info(Db).
-get_update_seq(#st{lethe_db=Db}) -> lethe_db:get_update_seq(Db).
-get_uuid(#st{lethe_db=Db}) -> lethe_db:get_uuid(Db).
+get_compacted_seq(#st{lethe_db = Db}) -> lethe_db:get_compacted_seq(Db).
+get_del_doc_count(#st{lethe_db = Db}) -> lethe_db:get_del_doc_count(Db).
+get_disk_version(#st{lethe_db = Db}) -> lethe_db:get_disk_version(Db).
+get_doc_count(#st{lethe_db = Db}) -> lethe_db:get_doc_count(Db).
+get_epochs(#st{lethe_db = Db}) -> lethe_db:get_epochs(Db).
+get_last_purged(#st{lethe_db = Db}) -> lethe_db:get_last_purged(Db).
+get_purge_seq(#st{lethe_db = Db}) -> lethe_db:get_purge_seq(Db).
+get_revs_limit(#st{lethe_db = Db}) -> lethe_db:get_revs_limit(Db).
+get_security(#st{lethe_db = Db}) -> lethe_db:get_security(Db).
+get_size_info(#st{lethe_db = Db}) -> lethe_db:get_size_info(Db).
+get_update_seq(#st{lethe_db = Db}) -> lethe_db:get_update_seq(Db).
+get_uuid(#st{lethe_db = Db}) -> lethe_db:get_uuid(Db).
 
 
-set_revs_limit(#st{lethe_db=Db} = St, Value) ->
+set_revs_limit(#st{lethe_db = Db} = St, Value) ->
     ok = lethe_db:set_revs_limit(Db, Value),
     {ok, St}.
 
 
-set_security(#st{lethe_db=Db} = St, Value) ->
+set_security(#st{lethe_db = Db} = St, Value) ->
     ok = lethe_db:set_security(Db, Value),
     {ok, St}.
 
 
-open_docs(#st{fdi_tab=Tab}, DocIds) ->
+open_docs(#st{fdi_tab = Tab}, DocIds) ->
     open_docs_int(Tab, DocIds).
 
 
@@ -145,11 +145,11 @@ open_docs_int(Tab, DocIds) ->
         case ets:lookup(Tab, DocId) of
             [] ->
                 not_found;
-            [#doc{id=(<<"_local/", _/binary>>), deleted=true}] ->
+            [#doc{id = (<<"_local/", _/binary>>), deleted = true}] ->
                   not_found;
-            [#doc{id=(<<"_local/", _/binary>>), deleted=false}=Doc] ->
+            [#doc{id = (<<"_local/", _/binary>>), deleted = false} = Doc] ->
                 Doc;
-            [#full_doc_info{}=FDI] ->
+            [#full_doc_info{} = FDI] ->
                 FDI
         end
     end, DocIds).
@@ -177,7 +177,7 @@ commit_data(St) ->
     {ok, St}.
 
 
-read_doc_body(#st{} = St, #doc{id=Id} = Doc) ->
+read_doc_body(#st{} = St, #doc{id = Id} = Doc) ->
     case ets:lookup(St#st.body_tab, Doc#doc.body) of
         [] -> not_found;
         [{{_Id, _Rev}, BodyTerm}] ->
@@ -194,11 +194,11 @@ open_read_stream(_, _) -> throw(not_supported).
 is_active_stream(_, _) -> false.
 
 
-fold_docs(#st{fdi_tab=Tab}, UserFun, UserAcc, Options) ->
+fold_docs(#st{fdi_tab = Tab}, UserFun, UserAcc, Options) ->
     fold_docs_int(Tab, UserFun, UserAcc, Options).
 
 
-fold_local_docs(#st{local_tab=Tab}, UserFun, UserAcc, Options) ->
+fold_local_docs(#st{local_tab = Tab}, UserFun, UserAcc, Options) ->
     fold_docs_int(Tab, UserFun, UserAcc, Options).
 
 
@@ -217,85 +217,85 @@ fold_docs_int(Tab, UserFun0, UserAcc, Options) ->
     WrapFun = case {StartKey, EndKey, Dir} of
         {undefined, undefined, _} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
+                (_, {stop, _} = FullAcc) -> FullAcc;
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {StartKey, undefined, fwd} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, _}=FullAcc) when Id < StartKey -> FullAcc;
-                (#doc{id=Id}, {ok, _}=FullAcc) when Id < StartKey -> FullAcc;
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, _} = FullAcc) when Id < StartKey -> FullAcc;
+                (#doc{id = Id}, {ok, _} = FullAcc) when Id < StartKey -> FullAcc;
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {StartKey, undefined, rev} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, _}=FullAcc) when Id > StartKey -> FullAcc;
-                (#doc{id=Id}, {ok, _}=FullAcc) when Id > StartKey -> FullAcc;
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, _} = FullAcc) when Id > StartKey -> FullAcc;
+                (#doc{id = Id}, {ok, _} = FullAcc) when Id > StartKey -> FullAcc;
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {undefined, {end_key_gt, EndKeyGt}, fwd} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id >= EndKeyGt -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id >= EndKeyGt -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id >= EndKeyGt -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id >= EndKeyGt -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {undefined, {end_key_gt, EndKeyGt}, rev} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id =< EndKeyGt -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id =< EndKeyGt -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id =< EndKeyGt -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id =< EndKeyGt -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {undefined, EndKey, fwd} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {undefined, EndKey, rev} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {StartKey, {end_key_gt, EndKeyGt}, fwd} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, _}=FullAcc) when Id < StartKey -> FullAcc;
-                (#doc{id=Id}, {ok, _}=FullAcc) when Id < StartKey -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id > EndKeyGt -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id > EndKeyGt -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, _} = FullAcc) when Id < StartKey -> FullAcc;
+                (#doc{id = Id}, {ok, _} = FullAcc) when Id < StartKey -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id > EndKeyGt -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id > EndKeyGt -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {StartKey, {end_key_gt, EndKeyGt}, rev} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, _}=FullAcc) when Id > StartKey -> FullAcc;
-                (#doc{id=Id}, {ok, _}=FullAcc) when Id > StartKey -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id < EndKeyGt -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id < EndKeyGt -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, _} = FullAcc) when Id > StartKey -> FullAcc;
+                (#doc{id = Id}, {ok, _} = FullAcc) when Id > StartKey -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id < EndKeyGt -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id < EndKeyGt -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {StartKey, EndKey, fwd} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, _}=FullAcc) when Id < StartKey -> FullAcc;
-                (#doc{id=Id}, {ok, _}=FullAcc) when Id < StartKey -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, _} = FullAcc) when Id < StartKey -> FullAcc;
+                (#doc{id = Id}, {ok, _} = FullAcc) when Id < StartKey -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id > EndKey -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end;
         {StartKey, EndKey, rev} ->
             fun
-                (_, {stop, _}=FullAcc) -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, _}=FullAcc) when Id > StartKey -> FullAcc;
-                (#doc{id=Id}, {ok, _}=FullAcc) when Id > StartKey -> FullAcc;
-                (#full_doc_info{id=Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
-                (#doc{id=Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
+                (_, {stop, _} = FullAcc) -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, _} = FullAcc) when Id > StartKey -> FullAcc;
+                (#doc{id = Id}, {ok, _} = FullAcc) when Id > StartKey -> FullAcc;
+                (#full_doc_info{id = Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
+                (#doc{id = Id}, {ok, Acc}) when Id < EndKey -> {ok, Acc};
                 (E, {ok, Acc}) -> UserFun(E, Acc)
             end
     end,
@@ -308,7 +308,7 @@ fold_docs_int(Tab, UserFun0, UserAcc, Options) ->
     wrap_fold_result(OutAcc, Options).
 
 
-count_changes_since(#st{lethe_db=Db}, SinceSeq) ->
+count_changes_since(#st{lethe_db = Db}, SinceSeq) ->
     count_changes_since(Db#lethe_db.seq_tab, SinceSeq, 0).
 
 
@@ -319,7 +319,7 @@ count_changes_since(Tab, Key, Count) ->
     end.
 
 
-fold_changes(#st{lethe_db=Db}, SinceSeq, UserFun, UserAcc, Options) ->
+fold_changes(#st{lethe_db = Db}, SinceSeq, UserFun, UserAcc, Options) ->
     fold_changes_int(Db, SinceSeq+1, UserFun, {ok, UserAcc}, Options).
 
 
@@ -353,11 +353,11 @@ fold_changes_int(Db, Key, Fun, {ok, Acc0}, Options) ->
 start_compaction(#st{lethe_db = Db} = St, _DbName, Options, Parent) ->
     UpdateSeq = get_update_seq(St),
     {ok, Pid} = lethe_db:start_compaction(Db, Options, Parent),
-    Db1 = Db#lethe_db{curr_seq=UpdateSeq},
-    {ok, St#st{lethe_db=Db1}, Pid}.
+    Db1 = Db#lethe_db{curr_seq = UpdateSeq},
+    {ok, St#st{lethe_db = Db1}, Pid}.
 
 
-finish_compaction(#st{lethe_db=Db} = St, DbName, Options, _Info) ->
+finish_compaction(#st{lethe_db = Db} = St, DbName, Options, _Info) ->
     UpdateSeqStart = Db#lethe_db.curr_seq,
     UpdateSeqCurr = get_update_seq(St),
     case UpdateSeqStart == UpdateSeqCurr of
@@ -368,16 +368,16 @@ finish_compaction(#st{lethe_db=Db} = St, DbName, Options, _Info) ->
     end.
 
 
-monitored_by(#st{lethe_db=Db}=_St) ->
+monitored_by(#st{lethe_db = Db}) ->
     lethe_db:monitored_by(Db).
 
 
-incref(#st{lethe_db=Db}=St) ->
+incref(#st{lethe_db = Db} = St) ->
     Ref = lethe_db:incref(Db),
-    {ok, St#st{monitor=Ref}}.
+    {ok, St#st{monitor = Ref}}.
 
 
-decref(#st{monitor=Monitor}) ->
+decref(#st{monitor = Monitor}) ->
     true = lethe_db:decref(Monitor),
     ok.
 

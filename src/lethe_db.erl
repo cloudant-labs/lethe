@@ -95,17 +95,17 @@ start_link(Name, Options) ->
     gen_server:start_link(?MODULE, [Name, Options], []).
 
 
-get_doc_count(#lethe_db{fdi_tab=Tab}) ->
+get_doc_count(#lethe_db{fdi_tab = Tab}) ->
     MS = ets:fun2ms(fun(#full_doc_info{deleted=false}) -> true end),
     ets:select_count(Tab, MS).
 
 
-get_del_doc_count(#lethe_db{fdi_tab=Tab}) ->
-    MS = ets:fun2ms(fun(FDI=#full_doc_info{deleted=true}) -> true end),
+get_del_doc_count(#lethe_db{fdi_tab = Tab}) ->
+    MS = ets:fun2ms(fun(#full_doc_info{deleted=true}) -> true end),
     ets:select_count(Tab, MS).
 
 
-get_update_seq(#lethe_db{pid=Pid}) -> gen_server:call(Pid, get_update_seq).
+get_update_seq(#lethe_db{pid = Pid}) -> gen_server:call(Pid, get_update_seq).
 get_purge_seq(#lethe_db{pid = Pid}) -> gen_server:call(Pid, get_purge_seq).
 get_last_purged(#lethe_db{pid = Pid}) -> gen_server:call(Pid, get_last_purged).
 get_compacted_seq(#lethe_db{pid = Pid}) -> gen_server:call(Pid, get_compacted_seq).
@@ -117,27 +117,27 @@ get_size_info(#lethe_db{pid = Pid}) -> gen_server:call(Pid, get_size_info).
 get_uuid(#lethe_db{pid = Pid}) -> gen_server:call(Pid, get_uuid).
 
 
-set_revs_limit(#lethe_db{pid=Pid}, Value) ->
+set_revs_limit(#lethe_db{pid = Pid}, Value) ->
     gen_server:call(Pid, {set_revs_limit, Value}).
 
 
-set_security(#lethe_db{pid=Pid}, Value) ->
+set_security(#lethe_db{pid = Pid}, Value) ->
     gen_server:call(Pid, {set_security, Value}).
 
 
-inc_update_seq(#lethe_db{}=Db) ->
+inc_update_seq(#lethe_db{} = Db) ->
     inc_update_seq(Db, 1).
 
 
-inc_update_seq(#lethe_db{pid=Pid}, Count) when Count >= 0 ->
+inc_update_seq(#lethe_db{pid = Pid}, Count) when Count >= 0 ->
     gen_server:call(Pid, {inc_update_seq, Count}).
 
 
-purge_docs(#lethe_db{pid=Pid}, PurgeInfo) ->
+purge_docs(#lethe_db{pid = Pid}, PurgeInfo) ->
     gen_server:call(Pid, {purge_docs, PurgeInfo}).
 
 
-start_compaction(#lethe_db{pid=Pid}, Options, Parent) ->
+start_compaction(#lethe_db{pid = Pid}, Options, Parent) ->
     gen_server:call(Pid, {start_compaction, Options, Parent}).
 
 
@@ -145,15 +145,15 @@ get_db(Pid) ->
     gen_server:call(Pid, get_db).
 
 
-write_doc_body(#lethe_db{pid=Pid}, #doc{} = Doc) ->
+write_doc_body(#lethe_db{pid = Pid}, #doc{} = Doc) ->
     gen_server:call(Pid, {write_doc_body, Doc}).
 
 
-write_doc_infos(#lethe_db{pid=Pid}, Pairs, LocalDocs, PurgeInfo) ->
+write_doc_infos(#lethe_db{pid = Pid}, Pairs, LocalDocs, PurgeInfo) ->
     gen_server:call(Pid, {write_doc_infos, Pairs, LocalDocs, PurgeInfo}).
 
 
-incref(#lethe_db{pid=Pid}) ->
+incref(#lethe_db{pid = Pid}) ->
     erlang:monitor(process, Pid).
 
 
@@ -161,7 +161,7 @@ decref(Ref) ->
     true = erlang:demonitor(Ref, [flush]).
 
 
-monitored_by(#lethe_db{pid=Pid}) ->
+monitored_by(#lethe_db{pid = Pid}) ->
     case erlang:process_info(Pid, monitored_by) of
         {monitored_by, Pids} ->
             lists:usort(Pids);
@@ -289,7 +289,7 @@ purge_docs_int(St, PurgeInfo) ->
     }.
 
 
-compact_db(#st{fdi_tab=FDITab}=St, Options) ->
+compact_db(#st{fdi_tab = FDITab}=St, Options) ->
     compact_db(St, ets:first(FDITab), Options).
 
 
@@ -319,8 +319,8 @@ compact_doc(_Rev, Leaf, leaf, Acc) ->
 
 write_doc_body_int(Tab, #doc{} = Doc) ->
     #doc{
-        id=Id,
-        revs={Start, [FirstRevId|_]}
+        id = Id,
+        revs = {Start, [FirstRevId|_]}
     } = Doc,
     Rev = ?l2b([integer_to_list(Start),"-",?l2b(couch_util:to_hex(FirstRevId))]),
     true = ets:insert_new(Tab, [{{Id, Rev}, Doc#doc.body}]),

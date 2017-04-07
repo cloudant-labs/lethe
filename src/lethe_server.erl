@@ -53,7 +53,7 @@ open_db(Name, Options) ->
             end;
         false ->
             case ets:lookup(?DBS_TABLE, Name) of
-                [#lethe_db{}=Db] ->
+                [#lethe_db{} = Db] ->
                     {ok, Db};
                 [] ->
                     throw({not_found, no_db_file})
@@ -91,7 +91,7 @@ terminate(_Reason, _St) ->
     ok.
 
 
-code_change(_OldVsn, #st{}=State, _Extra) ->
+code_change(_OldVsn, #st{} = State, _Extra) ->
     {ok, State}.
 
 
@@ -107,7 +107,7 @@ create_db_int(Name, Options) ->
 
 delete_db_int(Name) ->
     case ets:lookup(?DBS_TABLE, Name) of
-        [#lethe_db{}=Db] ->
+        [#lethe_db{} = Db] ->
             true = ets:delete(?DBS_TABLE, Db#lethe_db.name),
             ok = supervisor:terminate_child(lethe_db_sup, Db#lethe_db.pid);
         [] ->
