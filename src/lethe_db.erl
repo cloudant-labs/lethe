@@ -153,8 +153,9 @@ write_doc_infos(#lethe_db{pid = Pid}, Pairs, LocalDocs, PurgeInfo) ->
     gen_server:call(Pid, {write_doc_infos, Pairs, LocalDocs, PurgeInfo}).
 
 
-incref(#lethe_db{pid = Pid}) ->
-    erlang:monitor(process, Pid).
+incref(#lethe_db{pid = Pid} = Db) ->
+    Ref = erlang:monitor(process, Pid),
+    Db#lethe_db{monitor = Ref}.
 
 
 decref(Ref) ->

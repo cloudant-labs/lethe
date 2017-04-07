@@ -71,18 +71,7 @@
 -include_lib("couch/include/couch_db.hrl").
 -include_lib("lethe/include/lethe.hrl").
 
-
 -include_lib("eunit/include/eunit.hrl").
-
--record(st, {
-    header,
-    name,
-    fdi_tab,
-    body_tab,
-    local_tab,
-    lethe_db,
-    monitor
-}).
 
 
 exists(Name) ->
@@ -91,17 +80,10 @@ exists(Name) ->
 
 init(Name, Options) ->
     {ok, Db} = lethe_server:open_db(Name, Options),
-    {ok, #st{
-        name = Name,
-        lethe_db = Db,
-        fdi_tab = Db#lethe_db.fdi_tab,
-        body_tab = Db#lethe_db.body_tab,
-        local_tab = Db#lethe_db.local_tab,
-        monitor = lethe_db:incref(Db)
-    }}.
+    {ok, Db#lethe_db{monitor = lethe_db:incref(Db)}}.
 
 
-terminate(_Reason, #st{}) ->
+terminate(_Reason, #lethe_db{}) ->
     ok.
 
 
@@ -112,31 +94,31 @@ delete(_RootDir, Name, _Async) ->
     end.
 
 
-get_compacted_seq(#st{lethe_db = Db}) -> lethe_db:get_compacted_seq(Db).
-get_del_doc_count(#st{lethe_db = Db}) -> lethe_db:get_del_doc_count(Db).
-get_disk_version(#st{lethe_db = Db}) -> lethe_db:get_disk_version(Db).
-get_doc_count(#st{lethe_db = Db}) -> lethe_db:get_doc_count(Db).
-get_epochs(#st{lethe_db = Db}) -> lethe_db:get_epochs(Db).
-get_last_purged(#st{lethe_db = Db}) -> lethe_db:get_last_purged(Db).
-get_purge_seq(#st{lethe_db = Db}) -> lethe_db:get_purge_seq(Db).
-get_revs_limit(#st{lethe_db = Db}) -> lethe_db:get_revs_limit(Db).
-get_security(#st{lethe_db = Db}) -> lethe_db:get_security(Db).
-get_size_info(#st{lethe_db = Db}) -> lethe_db:get_size_info(Db).
-get_update_seq(#st{lethe_db = Db}) -> lethe_db:get_update_seq(Db).
-get_uuid(#st{lethe_db = Db}) -> lethe_db:get_uuid(Db).
+get_compacted_seq(#lethe_db{} = Db) -> lethe_db:get_compacted_seq(Db).
+get_del_doc_count(#lethe_db{} = Db) -> lethe_db:get_del_doc_count(Db).
+get_disk_version(#lethe_db{} = Db) -> lethe_db:get_disk_version(Db).
+get_doc_count(#lethe_db{} = Db) -> lethe_db:get_doc_count(Db).
+get_epochs(#lethe_db{} = Db) -> lethe_db:get_epochs(Db).
+get_last_purged(#lethe_db{} = Db) -> lethe_db:get_last_purged(Db).
+get_purge_seq(#lethe_db{} = Db) -> lethe_db:get_purge_seq(Db).
+get_revs_limit(#lethe_db{} = Db) -> lethe_db:get_revs_limit(Db).
+get_security(#lethe_db{} = Db) -> lethe_db:get_security(Db).
+get_size_info(#lethe_db{} = Db) -> lethe_db:get_size_info(Db).
+get_update_seq(#lethe_db{} = Db) -> lethe_db:get_update_seq(Db).
+get_uuid(#lethe_db{} = Db) -> lethe_db:get_uuid(Db).
 
 
-set_revs_limit(#st{lethe_db = Db} = St, Value) ->
+set_revs_limit(#lethe_db{} = Db, Value) ->
     ok = lethe_db:set_revs_limit(Db, Value),
-    {ok, St}.
+    {ok, Db}.
 
 
-set_security(#st{lethe_db = Db} = St, Value) ->
+set_security(#lethe_db{} = Db, Value) ->
     ok = lethe_db:set_security(Db, Value),
-    {ok, St}.
+    {ok, Db}.
 
 
-open_docs(#st{fdi_tab = Tab}, DocIds) ->
+open_docs(#lethe_db{fdi_tab = Tab}, DocIds) ->
     open_docs_int(Tab, DocIds).
 
 
@@ -155,30 +137,29 @@ open_docs_int(Tab, DocIds) ->
     end, DocIds).
 
 
-open_local_docs(#st{local_tab = Tab}, DocIds) ->
+open_local_docs(#lethe_db{local_tab = Tab}, DocIds) ->
     open_docs_int(Tab, DocIds).
 
 
-write_doc_body(#st{lethe_db = Db} = St, #doc{} = Doc) ->
+write_doc_body(#lethe_db{} = Db, #doc{} = Doc) ->
     lethe_db:write_doc_body(Db, Doc).
 
 
-write_doc_infos(#st{} = St, Pairs, LocalDocs, PurgeInfo) ->
-    #st{lethe_db = Db} = St,
+write_doc_infos(#lethe_db{} = Db, Pairs, LocalDocs, PurgeInfo) ->
     ok = lethe_db:write_doc_infos(Db, Pairs, LocalDocs, PurgeInfo),
-    {ok, St}.
+    {ok, Db}.
 
 
-serialize_doc(#st{}, #doc{} = Doc) ->
+serialize_doc(#lethe_db{}, #doc{} = Doc) ->
     Doc#doc{body = ?term_to_bin({Doc#doc.body, Doc#doc.atts})}.
 
 
-commit_data(St) ->
-    {ok, St}.
+commit_data(Db) ->
+    {ok, Db}.
 
 
-read_doc_body(#st{} = St, #doc{id = Id} = Doc) ->
-    case ets:lookup(St#st.body_tab, Doc#doc.body) of
+read_doc_body(#lethe_db{} = Db, #doc{id = Id} = Doc) ->
+    case ets:lookup(Db#lethe_db.body_tab, Doc#doc.body) of
         [] -> not_found;
         [{{_Id, _Rev}, BodyTerm}] ->
             {Body, Atts} = binary_to_term(BodyTerm),
@@ -194,11 +175,11 @@ open_read_stream(_, _) -> throw(not_supported).
 is_active_stream(_, _) -> false.
 
 
-fold_docs(#st{fdi_tab = Tab}, UserFun, UserAcc, Options) ->
+fold_docs(#lethe_db{fdi_tab = Tab}, UserFun, UserAcc, Options) ->
     fold_docs_int(Tab, UserFun, UserAcc, Options).
 
 
-fold_local_docs(#st{local_tab = Tab}, UserFun, UserAcc, Options) ->
+fold_local_docs(#lethe_db{local_tab = Tab}, UserFun, UserAcc, Options) ->
     fold_docs_int(Tab, UserFun, UserAcc, Options).
 
 
@@ -308,8 +289,8 @@ fold_docs_int(Tab, UserFun0, UserAcc, Options) ->
     wrap_fold_result(OutAcc, Options).
 
 
-count_changes_since(#st{lethe_db = Db}, SinceSeq) ->
-    count_changes_since(Db#lethe_db.seq_tab, SinceSeq, 0).
+count_changes_since(#lethe_db{seq_tab = Tab}, SinceSeq) ->
+    count_changes_since(Tab, SinceSeq, 0).
 
 
 count_changes_since(Tab, Key, Count) ->
@@ -319,7 +300,7 @@ count_changes_since(Tab, Key, Count) ->
     end.
 
 
-fold_changes(#st{lethe_db = Db}, SinceSeq, UserFun, UserAcc, Options) ->
+fold_changes(#lethe_db{} = Db, SinceSeq, UserFun, UserAcc, Options) ->
     fold_changes_int(Db, SinceSeq+1, UserFun, {ok, UserAcc}, Options).
 
 
@@ -350,42 +331,42 @@ fold_changes_int(Db, Key, Fun, {ok, Acc0}, Options) ->
     fold_changes_int(Db, Next, Fun, Acc1, Options).
 
 
-start_compaction(#st{lethe_db = Db} = St, _DbName, Options, Parent) ->
-    UpdateSeq = get_update_seq(St),
+start_compaction(#lethe_db{} = Db, _DbName, Options, Parent) ->
+    UpdateSeq = get_update_seq(Db),
     {ok, Pid} = lethe_db:start_compaction(Db, Options, Parent),
     Db1 = Db#lethe_db{curr_seq = UpdateSeq},
-    {ok, St#st{lethe_db = Db1}, Pid}.
+    {ok, Db1, Pid}.
 
 
-finish_compaction(#st{lethe_db = Db} = St, DbName, Options, _Info) ->
+finish_compaction(#lethe_db{} = Db, DbName, Options, _Info) ->
     UpdateSeqStart = Db#lethe_db.curr_seq,
-    UpdateSeqCurr = get_update_seq(St),
+    UpdateSeqCurr = get_update_seq(Db),
     case UpdateSeqStart == UpdateSeqCurr of
         true ->
-            {ok, St, undefined};
+            {ok, Db, undefined};
         false ->
-            start_compaction(St, DbName, Options, self())
+            start_compaction(Db, DbName, Options, self())
     end.
 
 
-monitored_by(#st{lethe_db = Db}) ->
+monitored_by(#lethe_db{} = Db) ->
     lethe_db:monitored_by(Db).
 
 
-incref(#st{lethe_db = Db} = St) ->
-    Ref = lethe_db:incref(Db),
-    {ok, St#st{monitor = Ref}}.
+incref(#lethe_db{} = Db) ->
+    Db1 = lethe_db:incref(Db),
+    {ok, Db1}.
 
 
-decref(#st{monitor = Monitor}) ->
+decref(#lethe_db{monitor = Monitor}) ->
     true = lethe_db:decref(Monitor),
     ok.
 
 
 %% placeholders
 delete_compaction_files(_RootDir, _DirPath, _DelOpts) -> throw(not_implemented).
-handle_call(_Msg, _St) -> throw(not_implemented).
-handle_info(_E, _St) -> throw(not_implemented).
+handle_call(_Msg, _Db) -> throw(not_implemented).
+handle_info(_E, _Db) -> throw(not_implemented).
 
 
 maybe_wrap_user_fun(UserFun, Options) ->

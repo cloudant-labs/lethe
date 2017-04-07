@@ -5,7 +5,8 @@
     local_tab,
     seq_tab,
     pid,
-    curr_seq %% used by compaction
+    curr_seq, %% used by compaction
+    monitor
 }).
 
 
