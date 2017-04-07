@@ -171,10 +171,10 @@ monitored_by(#lethe_db{pid = Pid}) ->
 
 
 init([Name, Options]) ->
-    BodyTab = ets:new(body_tab, [set, protected]),
-    FDITab = ets:new(fdi_tab, [{keypos, #full_doc_info.id}, ordered_set, protected]),
-    LocalTab = ets:new(local_tab, [{keypos, 2}, ordered_set, protected]),
-    SeqTab = ets:new(seq_tab, [ordered_set, protected]),
+    BodyTab = ets:new(body_tab, [set, protected, {read_concurrency, true}]),
+    FDITab = ets:new(fdi_tab, [{keypos, #full_doc_info.id}, ordered_set, protected, {read_concurrency, true}]),
+    LocalTab = ets:new(local_tab, [{keypos, 2}, ordered_set, protected, {read_concurrency, true}]),
+    SeqTab = ets:new(seq_tab, [ordered_set, protected, {read_concurrency, true}]),
     St = #st{
         name = Name,
         body_tab = BodyTab,

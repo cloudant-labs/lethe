@@ -66,7 +66,7 @@ delete_db(Name) ->
 
 
 init([]) ->
-    ?DBS_TABLE = ets:new(?DBS_TABLE, [{keypos, #lethe_db.name}, public, set, named_table]),
+    ?DBS_TABLE = ets:new(?DBS_TABLE, [{keypos, #lethe_db.name}, protected, set, named_table, {read_concurrency, true}]),
     {ok, #st{}}.
 
 
