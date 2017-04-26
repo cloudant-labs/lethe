@@ -36,10 +36,7 @@ start_link() ->
 
 
 db_exists(Name) ->
-    case ets:lookup(?DBS_TABLE, Name) of
-        [#lethe_db{}] -> true;
-        [] -> false
-    end.
+    ets:member(?DBS_TABLE, Name).
 
 
 open_db(Name, Options) ->
