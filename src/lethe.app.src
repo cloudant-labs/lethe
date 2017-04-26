@@ -5,8 +5,7 @@
     {mod, {lethe_app, []}},
     {applications, [
         kernel,
-        stdlib,
-        couch
+        stdlib
     ]}
 ]}.
 
