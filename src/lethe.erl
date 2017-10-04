@@ -21,12 +21,14 @@
 
     init/2,
     terminate/2,
-    handle_call/2,
-    handle_info/2,
+    handle_db_updater_call/2,
+    handle_db_updater_info/2,
 
     incref/1,
     decref/1,
     monitored_by/1,
+
+    last_activity/1,
 
     get_compacted_seq/1,
     get_del_doc_count/1,
@@ -352,6 +354,14 @@ finish_compaction(#lethe_db{} = Db, DbName, Options, _Info) ->
 monitored_by(#lethe_db{} = Db) ->
     lethe_db:monitored_by(Db).
 
+handle_db_updater_call(Msg, St) ->
+    {stop, {invalid_call, Msg}, {invalid_call, Msg}, St}.
+
+
+handle_db_updater_info(Msg, St) ->
+    {stop, {invalid_info, Msg}, St}.
+
+
 
 incref(#lethe_db{} = Db) ->
     Db1 = lethe_db:incref(Db),
@@ -363,10 +373,12 @@ decref(#lethe_db{monitor = Monitor}) ->
     ok.
 
 
+last_activity(_) ->
+    os:timestamp().
+
+
 %% placeholders
 delete_compaction_files(_RootDir, _DirPath, _DelOpts) -> throw(not_implemented).
-handle_call(_Msg, _Db) -> throw(not_implemented).
-handle_info(_E, _Db) -> throw(not_implemented).
 
 
 maybe_wrap_user_fun(UserFun, Options) ->

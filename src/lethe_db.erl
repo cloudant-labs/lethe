@@ -74,8 +74,12 @@
     last_purged = [],
     purge_seq = 0,
     revs_limit = 1000,
-    security = dso,
-    size_info = [],
+    security = [],
+    size_info = [
+        {active, 0},
+        {external, 0},
+        {file, 0}
+    ],
     update_seq = 0,
     uuid = couch_uuids:random(),
     compression = couch_compress:get_compression_method()
@@ -278,7 +282,9 @@ make_db(St) ->
 maybe_track(Options) ->
     IsSys = lists:member(sys_db, Options),
     if IsSys -> ok; true ->
-            couch_stats_process_tracker:track([lethe, open_lethes])
+        %% TODO: enable
+        %% couch_stats_process_tracker:track([lethe, open_lethes])
+        ok
     end,
     ok.
 
